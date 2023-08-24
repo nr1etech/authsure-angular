@@ -6,11 +6,6 @@ export interface AuthSureConfig {
    */
   readonly authSureDomain: string;
   /**
-   * TODO REMOVE ME BEFORE PUBLISHING SDK
-   * This is for AuthSure Console use only - DO NOT INCLUDE IN PUBLIC SDK
-   */
-  readonly authSureInviteDomain?: string; // TODO remove from public SDK
-  /**
    * The client_id of the ClientConfig on your AuthSure org. that you are utilizing for this Angular SPA
    */
   readonly clientId: string;

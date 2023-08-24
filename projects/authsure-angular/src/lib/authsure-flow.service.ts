@@ -94,8 +94,7 @@ export class AuthSureFlowService {
     }
   }
 
-  // TODO the token and org params shouldn't go into the SDK - maybe create a branch just for testing out the SDK
-  public initiateAuthFlow(stateString?: string | undefined, inviteToken?: string, inviteOrg?: string): void {
+  public initiateAuthFlow(stateString?: string | undefined): void {
     // Don't initiate auth flow if we're currently exchanging codes
     if (this.isExchangingCode) {
       return;
@@ -138,13 +137,8 @@ export class AuthSureFlowService {
     providerLoginHint = providerLoginHint === '' ? undefined : providerLoginHint;
     let authFlowBaseUrl;
     let authorizePath;
-    if (inviteOrg && inviteToken) {
-      authFlowBaseUrl = `https://${inviteOrg}.${authSureConfig.authSureInviteDomain}`;
-      authorizePath = ['acceptInvite'];
-    } else {
-      authFlowBaseUrl = `https://${authSureConfig.authSureDomain}`;
-      authorizePath = ['connect', 'authorize'];
-    }
+    authFlowBaseUrl = `https://${authSureConfig.authSureDomain}`;
+    authorizePath = ['connect', 'authorize'];
     const tree = this.router.createUrlTree(authorizePath, {
       queryParams: {
         response_type: 'code',
@@ -155,10 +149,9 @@ export class AuthSureFlowService {
         scope: scopes ? scopes.join(' ') : '',
         state: this.stateString,
         nonce: this.nonce,
-        provider: inviteToken ? undefined : provider,
-        login_hint: inviteToken ? undefined : providerLoginHint,
-        prompt: provider && !inviteToken ? 'none' : undefined,
-        token: inviteToken ? inviteToken : undefined
+        provider: provider,
+        login_hint: providerLoginHint,
+        prompt: provider ? 'none' : undefined
       }
     });
     const authorizeUri = this.serializer.serialize(tree);
