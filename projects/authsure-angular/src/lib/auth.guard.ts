@@ -1,7 +1,7 @@
 import {Injectable} from '@angular/core';
 import {ActivatedRouteSnapshot, CanActivate, Router, RouterStateSnapshot, UrlTree} from '@angular/router';
 import {Observable} from 'rxjs';
-import {AuthSureFlowService} from "./auth-sure-flow.service";
+import {AuthSureFlowService} from "./authsure-flow.service";
 
 @Injectable({
   providedIn: 'root'

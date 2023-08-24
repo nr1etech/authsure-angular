@@ -6,7 +6,7 @@ import * as crypto from 'crypto-js';
 import * as jose from 'jose';
 import {catchError} from 'rxjs/operators';
 import {MatSnackBar} from "@angular/material/snack-bar";
-import {AuthSureClientConfig} from "./auth-sure-config";
+import {AuthSureClientConfig} from "./authsure-config";
 
 @Injectable({
   providedIn: 'root'

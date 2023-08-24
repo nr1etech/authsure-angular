@@ -1,8 +1,8 @@
 import {Injectable} from '@angular/core';
 import {HttpEvent, HttpHandler, HttpInterceptor, HttpRequest} from '@angular/common/http';
 import {Observable} from 'rxjs';
-import {AuthSureFlowService} from "./auth-sure-flow.service";
-import {AuthSureClientConfig} from "./auth-sure-config";
+import {AuthSureFlowService} from "./authsure-flow.service";
+import {AuthSureClientConfig} from "./authsure-config";
 
 @Injectable()
 export class TokenInterceptor implements HttpInterceptor {

@@ -4,7 +4,7 @@ import {EMPTY, Observable, switchMap, throwError} from 'rxjs';
 import {catchError} from "rxjs/operators";
 import {MatSnackBar} from "@angular/material/snack-bar";
 import {Router} from "@angular/router";
-import {AuthSureFlowService} from "./auth-sure-flow.service";
+import {AuthSureFlowService} from "./authsure-flow.service";
 
 @Injectable()
 export class HttpErrorInterceptor implements HttpInterceptor {
