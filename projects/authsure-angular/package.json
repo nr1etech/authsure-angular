@@ -1,5 +1,5 @@
 {
-  "name": "@nr1etech/authsure-angular",
+  "name": "@authsure/authsure-angular",
   "version": "0.0.1-alpha.0",
   "peerDependencies": {
     "@angular/common": "^14.1.0",
