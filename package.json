@@ -6,6 +6,7 @@
     "ng": "ng",
     "start": "ng serve",
     "build": "ng build",
+    "postbuild": "cp README.md dist/authsure-angular/README.md && cp LICENSE dist/authsure-angular/LICENSE",
     "watch": "ng build --watch --configuration development",
     "test": "echo 'TODO Fix me later' || ng test",
     "publish": "cd projects/authsure-angular && pnpm publish && cd ../.."

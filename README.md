@@ -1,5 +1,9 @@
 # AuthSure Angular SDK
 
+[![NPM Version][npm-image]][npm-url]
+[![TypeScript Style Guide][gts-image]][gts-url]
+[![GitHub Actions][github-image]][github-url]
+
 This SDK is used for integrating basic Angular SPA authentication through the AuthSure Authentication Platform.
 
 ## Installing
@@ -37,3 +41,11 @@ To set up which routes should be protected by authentication, add the following 
 ## Options
 
 See the `AuthSureConfig` interface for documentation on the various configuration options for the authentication flow.
+
+[github-url]: https://github.com/nr1etech/authsure-angular/actions
+[github-image]: https://github.com/nr1etech/authsure-angular/workflows/ci/badge.svg
+[npm-url]: https://npmjs.org/package/@nr1e/authsure-angular
+[npm-image]: https://img.shields.io/npm/v/@nre1/authsure-angular.svg
+[gts-image]: https://img.shields.io/badge/code%20style-google-blueviolet.svg
+[gts-url]: https://github.com/google/gts
+

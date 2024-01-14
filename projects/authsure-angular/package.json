@@ -1,6 +1,20 @@
 {
   "name": "@authsure/authsure-angular",
+  "description": "Used for integrating basic Angular SPA authentication through the AuthSure Authentication Platform",
   "version": "0.0.2-alpha.1",
+  "author": "NR1E, Inc.",
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "BSD-3-Clause",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nr1etech/authsure-angular.git"
+  },
+  "bugs": {
+    "url": "https://github.com/nr1etech/authsure-angular/issues"
+  },
+  "homepage": "https://github.com/nr1etech/authsure-angular#readme",
   "peerDependencies": {
     "@angular/common": "^14.1.0",
     "@angular/core": "^14.1.0",
@@ -18,14 +32,5 @@
   "devDependencies": {
     "@types/crypto-js": "^4.1.1"
   },
-  "sideEffects": false,
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/nr1etech/authsure-angular.git"
-  },
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/nr1etech/authsure-angular/issues"
-  },
-  "homepage": "https://github.com/nr1etech/authsure-angular#readme"
+  "sideEffects": false
 }
