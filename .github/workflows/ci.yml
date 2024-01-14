@@ -7,7 +7,7 @@
   name: ci
   jobs:
     publish:
-      uses: ./.github/workflows/angular-library.yml
+      uses: nr1etech/github-workflows/.github/workflows/javascript-library.yml@main
       with:
         github-email: "365211+erikrj@users.noreply.github.com"
         github-name: "Erik Jensen"
