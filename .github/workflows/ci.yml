@@ -1,17 +1,19 @@
-#  on:
-#    push:
-#      branches:
-#        - main
-#        - develop
-#    workflow_dispatch:
-#  name: ci
-#  jobs:
-#    publish:
-#      uses: nr1etech/github-workflows/.github/workflows/javascript-library.yml@main
-#      with:
-#        github-email: "365211+erikrj@users.noreply.github.com"
-#        github-name: "Erik Jensen"
-##        site-branch: 'main'
-#      secrets:
-#        deploy-key: ${{ secrets.DEPLOY_KEY }}
-#        npm-auth-token: ${{ secrets.NPM_AUTH_TOKEN }}
+  on:
+    push:
+      branches:
+        - main
+        - develop
+    workflow_dispatch:
+  name: ci
+  jobs:
+    publish:
+      uses: ./.github/workflows/angular-library.yml
+      with:
+        github-email: "365211+erikrj@users.noreply.github.com"
+        github-name: "Erik Jensen"
+        version-dir: "projects/authsure-angular"
+        publish-dir: "dist/authsure-angular"
+#        site-branch: 'main'
+      secrets:
+        deploy-key: ${{ secrets.DEPLOY_KEY }}
+        npm-auth-token: ${{ secrets.NPM_AUTH_TOKEN }}
