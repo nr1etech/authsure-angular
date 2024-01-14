@@ -1,10 +1,12 @@
 import {Injectable} from '@angular/core';
+// TODO This also threw an error when I imported without adding the dependency
 import {HttpBackend, HttpClient, HttpErrorResponse} from "@angular/common/http";
 import {EMPTY, mergeMap, Observable, of, share} from "rxjs";
 import {Router, UrlSerializer} from "@angular/router";
 import * as crypto from 'crypto-js';
 import * as jose from 'jose';
 import {catchError} from 'rxjs/operators';
+// TODO This import is problematic for those not using Angular Material. Instead we should provide a way to register a function to show an error message
 import {MatSnackBar} from "@angular/material/snack-bar";
 import {AuthSureClientConfig} from "./authsure-config";
 
