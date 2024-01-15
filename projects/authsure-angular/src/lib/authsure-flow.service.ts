@@ -253,7 +253,7 @@ export class AuthSureFlowService {
         }
         return EMPTY;
       })
-    );
+    ).subscribe();
     return this.status$;
   }
 
