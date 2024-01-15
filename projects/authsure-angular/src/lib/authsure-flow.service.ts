@@ -1,14 +1,19 @@
 import {Injectable} from '@angular/core';
-// TODO This also threw an error when I imported without adding the dependency
 import {HttpBackend, HttpClient, HttpErrorResponse} from "@angular/common/http";
-import {EMPTY, mergeMap, Observable, of, share} from "rxjs";
+import {BehaviorSubject, EMPTY, mergeMap, Observable, of, share} from "rxjs";
 import {Router, UrlSerializer} from "@angular/router";
 import * as crypto from 'crypto-js';
 import * as jose from 'jose';
 import {catchError} from 'rxjs/operators';
-// TODO This import is problematic for those not using Angular Material. Instead we should provide a way to register a function to show an error message
-import {MatSnackBar} from "@angular/material/snack-bar";
 import {AuthSureClientConfig} from "./authsure-config";
+
+export interface ExchangeCodeParams {
+  readonly code: string;
+  readonly state: string;
+  readonly scopes?: string;
+}
+
+export type Status = 'unauthenticated' | 'authenticated' | 'processing' | 'failed';
 
 @Injectable({
   providedIn: 'root'
@@ -39,8 +44,8 @@ export class AuthSureFlowService {
   private static readonly PREVIOUS_ROUTER_PATH_KEY = AuthSureFlowService.LOCAL_STORAGE_PREFIX + 'previousRouterPath';
 
   private http: HttpClient;
-
-  private isExchangingCode = false;
+  private status = new BehaviorSubject<Status>('unauthenticated');
+  public status$ = this.status.asObservable();
 
   private nonce: string | undefined;
 
@@ -54,51 +59,22 @@ export class AuthSureFlowService {
   private accessTokenExpiration: number | undefined;
   private refreshTokenObservable: Observable<any> | undefined;
 
-  constructor(private config: AuthSureClientConfig, private snackBar: MatSnackBar, private router: Router,
+  constructor(private config: AuthSureClientConfig, private router: Router,
               private serializer: UrlSerializer, handler: HttpBackend) {
-
     this.http = new HttpClient(handler); // Bypass Interceptors on HTTP calls from this Service
 
-    /**
-     * Intercept code from querystring params and exchange for tokens
-     */
+    // TODO We should have a setting in the config to enable/disable this
     const restrictedRedirectUri = config.get().redirectUri?.toLowerCase();
-
     // Use window.location to avoid a subscription and any delay in starting to process the querystring params
     if (window.location && window.location.search &&
       (!restrictedRedirectUri || window.location.href.toLowerCase().startsWith(restrictedRedirectUri))) {
-      const params = new URLSearchParams(window.location.search);
-      const code = params.get('code');
-      const state = params.get('state');
-      // Error out if code query param is present, but state is not
-      if (code && !state) {
-        console.error('No authorization code and/or state received from AuthSure.');
-        return;
-      }
-      // Error out if state query param is present, but code is not
-      if (!code && state) {
-        console.error('No authorization code and/or state received from AuthSure.');
-        return;
-      }
-      // Only process if both code and state query params are present
-      if (code && state) {
-        const scopes = params.get('scope') ?? undefined;
-        this.isExchangingCode = true;
-        this.logout(); // So we don't get user sessions mixed up
-        this.exchangeCode(code, state, scopes).subscribe((result: boolean) => {
-          if (result) {
-            this.isExchangingCode = false;
-          } else {
-            this.snackBar.open('An error was encountered while processing your sign in. Please try again.', 'OK');
-          }
-        });
-      }
+      this.exchangeCode();
     }
   }
 
   public initiateAuthFlow(stateString?: string | undefined): void {
     // Don't initiate auth flow if we're currently exchanging codes
-    if (this.isExchangingCode) {
+    if (this.status.getValue() === 'processing') {
       return;
     }
 
@@ -182,19 +158,45 @@ export class AuthSureFlowService {
     this.storePersistedItem(AuthSureFlowService.NONCE_KEY, this.nonce);
   }
 
-  public exchangeCode(code: string, stateString: string, scopes?: string): Observable<boolean> {
-    if (this.getPersistedItem(AuthSureFlowService.STATE_STRING_KEY) != stateString) {
-      console.error('Auth Flow Error: State string from auth callback did not match stored state string.');
+  public getExchangeCodeParams(clearQueryString?: boolean): ExchangeCodeParams | null {
+    if (window.location && window.location.search) {
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get('code');
+      const state = params.get('state');
+      const scopes = params.get('scope') ?? undefined;
+      // Only process if both code and state query params are present
+      if (code && state) {
+        if (clearQueryString ?? true) {
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
+        return {code, state, scopes};
+      }
+    }
+    return null;
+  }
+
+  public exchangeCode(params?: ExchangeCodeParams | null): Observable<Status> {
+    if (this.isAuthenticated()) {
+      this.status.next('authenticated');
+      return this.status$;
+    }
+    params = params || this.getExchangeCodeParams();
+    if (!params) {
+      this.status.next('unauthenticated');
+      return this.status$;
+    }
+    this.status.next('processing');
+    if (this.getPersistedItem(AuthSureFlowService.STATE_STRING_KEY) != params.state) {
+      this.status.next('failed');
       throw Error('Auth Flow Error: State string from auth callback did not match stored state string.');
     }
-
     const tokenUrl = `https://${this.config.get().authSureDomain}/connect/token`;
-    return this.http.post<any>(tokenUrl, {
+    this.http.post(tokenUrl, {
       grant_type: 'authorization_code',
       client_id: this.config.get().clientId,
       code_verifier: this.getPersistedItem(AuthSureFlowService.CODE_VERIFIER_KEY),
-      code,
-      scope: scopes
+      code: params.code,
+      scope: params.scopes
     }, {
       headers: {
         'content-type': 'application/json'
@@ -213,55 +215,56 @@ export class AuthSureFlowService {
                 hadAccessToken = true;
               }
             } else {
+              this.status.next('failed');
               console.error(`JWT validation failed on ${token} from authorization_code exchange`);
-              return false;
+              return;
             }
           }
         }
         if (!hadIdToken) {
+          this.status.next('failed');
           console.error(`Result from authorization_code exchange did not contain an id_token`);
-          return false;
+          return;
         }
         if (!hadAccessToken) {
+          this.status.next('failed');
           console.error(`Result from authorization_code exchange did not contain an access_token`);
-          return false;
+          return;
         }
         const previousRouterPath = this.getAndClearPreviousRouterPath();
         if (previousRouterPath) {
-          this.snackBar.open('Hang on while we redirect you back to where you were...', 'Dismiss', {duration: 2500});
           const previousRouterPathParts = previousRouterPath.split('#');
           const previousUrl = previousRouterPathParts[0];
           await this.router.navigate([previousUrl], {
             fragment: previousRouterPathParts.length > 1 ? previousRouterPathParts[1] : undefined
           });
-        } else {
-          await this.router.navigate(['manage', 'orgs']);
         }
-        return true;
+        this.status.next('authenticated');
       }),
       catchError((error: HttpErrorResponse) => {
         if (error.error instanceof Error) {
+          this.status.next('failed');
           console.error('An error occurred with code->token exchange:', error.error.message);
           console.error(error);
         } else {
+          this.status.next('failed');
           console.error(`code->token exchange returned code ${error.status}, body was: ${JSON.stringify(error.error)}`);
           console.error(error);
         }
-        this.snackBar.open('There was an error signing you in. Please try again.', 'OK');
         return EMPTY;
       })
     );
+    return this.status$;
   }
 
-  public exchangeRefreshToken(): Observable<boolean | undefined> {
+  public exchangeRefreshToken(): Observable<Status> {
     const refreshToken = this.getRefreshToken();
     if (!refreshToken) {
-      console.debug('Auth Flow: No refresh token present. Skipping refresh token exchange.');
-      return of(false);
+      return this.status$;
     }
 
     if (!this.refreshTokenObservable) {
-      this.snackBar.open('Hang on while we reestablish your session...', 'Dismiss');
+      this.status.next('processing');
       const tokenUrl = `https://${this.config.get().authSureDomain}/connect/token`;
       this.refreshTokenObservable = this.http.post<any>(tokenUrl, {
         grant_type: AuthSureFlowService.REFRESH_TOKEN,
@@ -272,11 +275,10 @@ export class AuthSureFlowService {
           'content-type': 'application/json'
         }
       });
-      return this.refreshTokenObservable.pipe(
+      this.refreshTokenObservable.pipe(
         share(),
         mergeMap(async (tokens: any) => {
           this.refreshTokenObservable = undefined;
-          this.snackBar.dismiss();
           let hadAccessToken = false;
           for (const token in tokens) {
             if (token.endsWith('_token')) {
@@ -286,30 +288,32 @@ export class AuthSureFlowService {
                   hadAccessToken = true;
                 }
               } else {
+                this.status.next('failed');
                 console.error(`JWT validation failed on ${token} from refresh_token exchange`);
-                return false;
+                return;
               }
             }
           }
           if (hadAccessToken) {
-            return true;
+            this.status.next('authenticated');
           } else {
+            this.status.next('failed');
             console.error(`Result from refresh_token exchange did not contain a new access_token`);
-            return false;
           }
         }),
         catchError((error: HttpErrorResponse) => {
           if (error.error instanceof Error) {
+            this.status.next('failed');
             console.error('An error occurred with refresh_token->token exchange:', error.error.message);
           } else {
+            this.status.next('failed');
             console.error(`refresh_token->token exchange returned code ${error.status}, body was: ${JSON.stringify(error.error)}`);
           }
-          return of(false);
+          return EMPTY;
         })
       );
-    } else {
-      return of(undefined);
     }
+    return this.status$;
   }
 
   public async validateJwt(jwtType: string, jwt: string) {

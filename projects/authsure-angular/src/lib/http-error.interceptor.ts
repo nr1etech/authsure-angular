@@ -1,8 +1,7 @@
 import {Injectable} from '@angular/core';
 import {HttpErrorResponse, HttpEvent, HttpHandler, HttpInterceptor, HttpRequest} from '@angular/common/http';
-import {EMPTY, Observable, switchMap, throwError} from 'rxjs';
+import {BehaviorSubject, EMPTY, Observable, switchMap, throwError} from 'rxjs';
 import {catchError} from "rxjs/operators";
-import {MatSnackBar} from "@angular/material/snack-bar";
 import {Router} from "@angular/router";
 import {AuthSureFlowService} from "./authsure-flow.service";
 
@@ -10,8 +9,10 @@ import {AuthSureFlowService} from "./authsure-flow.service";
 export class HttpErrorInterceptor implements HttpInterceptor {
 
   private alreadyLoggedOut = false;
+  private error = new BehaviorSubject<HttpErrorResponse | null>(null);
+  public error$ = this.error.asObservable();
 
-  constructor(private snackBar: MatSnackBar, private auth: AuthSureFlowService, private router: Router) {
+  constructor(private auth: AuthSureFlowService, private router: Router) {
   }
 
   intercept(request: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
@@ -26,7 +27,7 @@ export class HttpErrorInterceptor implements HttpInterceptor {
             // TODO figure out if we can do better error handling when CloudFront times out (504 err)
             if (error.status === 401 || error.status === 0) { // NOTE: 0 is good enough for now as this only happens on JWT Authorizer failure
               // Try exchanging refresh token first
-              return this.auth.exchangeRefreshToken().pipe(switchMap((result: boolean | undefined) => {
+              return this.auth.exchangeRefreshToken().pipe(switchMap((result: any) => {
                 if (result) {
                   return this.notifyOrReloadCurrentRoute(request, next);
                 } else if (result === false) { // We should do nothing on undefined
@@ -35,13 +36,14 @@ export class HttpErrorInterceptor implements HttpInterceptor {
                 return EMPTY;
               }));
             } else if (error.status === 403) {
-              this.snackBar.open('Access was denied to the resource. Please try again.', 'OK', {duration: undefined});
+              this.error.next(error);
             } else if (error.status === 404) {
-              this.snackBar.open('Resource could not be found. Please try again.', 'OK', {duration: undefined});
+              this.error.error(error);
             } else if (error.status === 500) {
-              this.snackBar.open('System error occurred. Please try again.', 'OK', {duration: undefined});
+              this.error.error(error);
             }
           }
+          // TODO Need to replace depcated method
           return throwError(error);
         })
       )
@@ -73,8 +75,8 @@ export class HttpErrorInterceptor implements HttpInterceptor {
   private logoutAndLoginAgain() {
     if (!this.alreadyLoggedOut) {
       this.alreadyLoggedOut = true;
-      this.snackBar.open('Your session has timed out. Sending you to sign in again.', '', {duration: undefined});
       this.auth.logout(true, this.router.url);
+      // TODO Need a way to notify the user that they've been logged out
       this.auth.initiateAuthFlow();
     }
     return EMPTY;
