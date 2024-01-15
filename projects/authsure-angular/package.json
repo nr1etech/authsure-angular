@@ -1,7 +1,7 @@
 {
   "name": "@authsure/authsure-angular",
   "description": "Used for integrating basic Angular SPA authentication through the AuthSure Authentication Platform",
-  "version": "0.0.2-alpha.7",
+  "version": "0.0.2-alpha.8",
   "author": "NR1E, Inc.",
   "publishConfig": {
     "access": "public"
