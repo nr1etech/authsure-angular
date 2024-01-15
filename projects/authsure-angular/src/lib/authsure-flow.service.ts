@@ -381,7 +381,7 @@ export class AuthSureFlowService {
     return this.accessToken;
   }
 
-  private getRefreshToken(): string | null {
+  public getRefreshToken(): string | null {
     return this.getPersistedItem(AuthSureFlowService.REFRESH_TOKEN_KEY);
   }
 
